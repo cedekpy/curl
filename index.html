@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Clur</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #2f3136; color: #fff; margin: 0; }
+    .container { width: 400px; margin: 50px auto; background: #36393f; padding: 20px; border-radius: 12px; }
+    h2 { text-align: center; }
+    input, button { width: 100%; padding: 10px; margin: 5px 0; border-radius: 8px; border: none; }
+    input { background: #202225; color: #fff; }
+    button { background: #5865f2; color: #fff; cursor: pointer; font-weight: bold; }
+    button:hover { background: #4752c4; }
+    .hidden { display: none; }
+    .friends, .chat, .servers { margin-top: 20px; }
+    .friend, .server { background: #202225; padding: 8px; margin: 5px 0; border-radius: 6px; cursor: pointer; }
+    .messages { height: 200px; overflow-y: auto; background: #202225; padding: 10px; border-radius: 6px; }
+    .msg { margin: 5px 0; }
+  </style>
+</head>
+<body>
+
+<div class="container" id="auth">
+  <h2>Clur</h2>
+  <input type="text" id="nickname" placeholder="Pseudonim">
+  <input type="password" id="password" placeholder="Hasło">
+  <button onclick="register()">Rejestracja</button>
+  <button onclick="login()">Logowanie</button>
+  <p id="authMsg"></p>
+</div>
+
+<div class="container hidden" id="app">
+  <h2 id="welcome"></h2>
+  <div class="friends">
+    <h3>Znajomi</h3>
+    <div id="friendsList"></div>
+    <input type="text" id="newFriend" placeholder="Dodaj znajomego">
+    <button onclick="addFriend()">Dodaj</button>
+  </div>
+
+  <div class="servers">
+    <h3>Serwery</h3>
+    <div id="serversList"></div>
+    <input type="text" id="newServer" placeholder="Dodaj serwer (np. strona.com/link)">
+    <button onclick="addServer()">Dodaj</button>
+  </div>
+
+  <div class="chat hidden" id="chatBox">
+    <h3 id="chatWith"></h3>
+    <div class="messages" id="messages"></div>
+    <input type="text" id="msgInput" placeholder="Napisz wiadomość...">
+    <button onclick="sendMessage()">Wyślij</button>
+  </div>
+</div>
+
+<script>
+  // TODO: Wstaw swoje dane konfiguracyjne Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyCVETOQpi892lZWa3HkmsPNYEy-99HdH3s",
+  authDomain: "clur-8c2c7.firebaseapp.com",
+  projectId: "clur-8c2c7",
+  storageBucket: "clur-8c2c7.firebasestorage.app",
+  messagingSenderId: "328040168713",
+  appId: "1:328040168713:web:bdf671c9f373aebc1127d8",
+  measurementId: "G-PVRYRH7VJ2"
+};
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  let currentUser = null;
+  let currentChat = null;
+
+  function register() {
+    const nick = document.getElementById('nickname').value;
+    const pwd = document.getElementById('password').value;
+    auth.createUserWithEmailAndPassword(nick + '@clur.com', pwd)
+      .then(userCredential => {
+        currentUser = userCredential.user;
+        db.collection('users').doc(currentUser.uid).set({ nickname: nick, friends: [], servers: [] });
+        showApp(nick);
+      })
+      .catch(err => document.getElementById('authMsg').innerText = err.message);
+  }
+
+  function login() {
+    const nick = document.getElementById('nickname').value;
+    const pwd = document.getElementById('password').value;
+    auth.signInWithEmailAndPassword(nick + '@clur.com', pwd)
+      .then(userCredential => {
+        currentUser = userCredential.user;
+        db.collection('users').doc(currentUser.uid).get().then(doc => {
+          showApp(doc.data().nickname);
+        });
+      })
+      .catch(err => document.getElementById('authMsg').innerText = err.message);
+  }
+
+  function showApp(nick) {
+    document.getElementById('auth').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    document.getElementById('welcome').innerText = 'Witaj, ' + nick;
+    renderFriends();
+    renderServers();
+  }
+
+  function addFriend() {
+    const friendNick = document.getElementById('newFriend').value;
+    alert('Dodawanie znajomego wymaga implementacji Firestore logic');
+  }
+
+  function renderFriends() {
+    document.getElementById('friendsList').innerHTML = '';
+    // TODO: pobieranie znajomych z Firestore
+  }
+
+  function addServer() {
+    const serverLink = document.getElementById('newServer').value;
+    alert('Dodawanie serwera wymaga implementacji Firestore logic');
+  }
+
+  function renderServers() {
+    document.getElementById('serversList').innerHTML = '';
+    // TODO: pobieranie serwerów z Firestore
+  }
+
+  function openChat(friend) {
+    currentChat = friend;
+    document.getElementById('chatBox').classList.remove('hidden');
+    document.getElementById('chatWith').innerText = 'Czat z ' + friend;
+    renderMessages();
+  }
+
+  function sendMessage() {
+    alert('Wysyłanie wiadomości wymaga implementacji Firestore logic');
+  }
+
+  function renderMessages() {
+    document.getElementById('messages').innerHTML = '';
+    // TODO: pobieranie wiadomości z Firestore
+  }
+</script>
+</body>
+</html>
