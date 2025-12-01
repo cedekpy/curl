@@ -1,149 +1,1317 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <title>Clur</title>
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; background: #2f3136; color: #fff; margin: 0; }
-    .container { width: 400px; margin: 50px auto; background: #36393f; padding: 20px; border-radius: 12px; }
-    h2 { text-align: center; }
-    input, button { width: 100%; padding: 10px; margin: 5px 0; border-radius: 8px; border: none; }
-    input { background: #202225; color: #fff; }
-    button { background: #5865f2; color: #fff; cursor: pointer; font-weight: bold; }
-    button:hover { background: #4752c4; }
-    .hidden { display: none; }
-    .friends, .chat, .servers { margin-top: 20px; }
-    .friend, .server { background: #202225; padding: 8px; margin: 5px 0; border-radius: 6px; cursor: pointer; }
-    .messages { height: 200px; overflow-y: auto; background: #202225; padding: 10px; border-radius: 6px; }
-    .msg { margin: 5px 0; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curl - Platforma komunikacyjna</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        :root {
+            --primary-color: #5865f2;
+            --secondary-color: #404eed;
+            --dark-bg: #36393f;
+            --darker-bg: #2f3136;
+            --sidebar-bg: #202225;
+            --text-color: #dcddde;
+            --text-muted: #72767d;
+            --online-status: #3ba55d;
+            --idle-status: #faa81a;
+            --border-color: #202225;
+            --message-hover: #32353b;
+            --input-bg: #40444b;
+            --success-color: #3ba55d;
+            --error-color: #ed4245;
+        }
+
+        body {
+            display: flex;
+            height: 100vh;
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        /* Stylizacja paska bocznego z serwerami */
+        .servers-sidebar {
+            width: 72px;
+            background-color: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 0;
+            overflow-y: auto;
+        }
+
+        .server-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: var(--darker-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: border-radius 0.2s, background-color 0.2s;
+            font-weight: bold;
+            color: white;
+        }
+
+        .server-icon:hover {
+            border-radius: 16px;
+            background-color: var(--primary-color);
+        }
+
+        .server-icon.active {
+            border-radius: 16px;
+            background-color: var(--primary-color);
+        }
+
+        .server-icon.add-server {
+            background-color: #36393f;
+            color: var(--success-color);
+            font-size: 24px;
+        }
+
+        .server-icon.curlio {
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 18px;
+        }
+
+        .divider {
+            width: 32px;
+            height: 2px;
+            background-color: #2e3338;
+            margin: 8px 0;
+        }
+
+        /* Stylizacja głównej części */
+        .main-container {
+            display: flex;
+            flex: 1;
+        }
+
+        /* Stylizacja panelu znajomych/kanałów */
+        .channels-sidebar {
+            width: 240px;
+            background-color: var(--darker-bg);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .server-header {
+            padding: 16px;
+            border-bottom: 2px solid var(--border-color);
+            font-weight: 600;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .channels-list {
+            padding: 16px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .channel-category {
+            margin-bottom: 20px;
+        }
+
+        .category-title {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .channel-item {
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            margin-bottom: 2px;
+            color: var(--text-muted);
+        }
+
+        .channel-item:hover {
+            background-color: rgba(79, 84, 92, 0.16);
+            color: var(--text-color);
+        }
+
+        .channel-item.active {
+            background-color: rgba(79, 84, 92, 0.6);
+            color: var(--text-color);
+        }
+
+        .channel-icon {
+            margin-right: 8px;
+            font-size: 14px;
+        }
+
+        /* Stylizacja znajomych */
+        .friends-list {
+            padding: 16px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .friend-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            cursor: pointer;
+        }
+
+        .friend-item:hover {
+            background-color: rgba(79, 84, 92, 0.16);
+        }
+
+        .friend-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #5865f2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 12px;
+            position: relative;
+        }
+
+        .status-indicator {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            bottom: 0;
+            right: 0;
+            border: 2px solid var(--darker-bg);
+        }
+
+        .status-online {
+            background-color: var(--online-status);
+        }
+
+        .status-idle {
+            background-color: var(--idle-status);
+        }
+
+        .status-offline {
+            background-color: var(--text-muted);
+        }
+
+        .friend-info {
+            flex: 1;
+        }
+
+        .friend-name {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .friend-status {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Stylizacja obszaru czatu */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--dark-bg);
+        }
+
+        .chat-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+        }
+
+        .chat-header-icon {
+            margin-right: 8px;
+            color: var(--text-muted);
+        }
+
+        .chat-header-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .chat-header-topic {
+            margin-left: 8px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 20px;
+            padding: 2px 16px;
+            border-radius: 4px;
+        }
+
+        .message:hover {
+            background-color: var(--message-hover);
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #5865f2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+
+        .message-content {
+            flex: 1;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 8px;
+        }
+
+        .message-author {
+            font-weight: 600;
+            font-size: 16px;
+            margin-right: 8px;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .message-text {
+            font-size: 15px;
+            line-height: 1.4;
+        }
+
+        /* Stylizacja pola tekstowego */
+        .message-input-container {
+            padding: 16px;
+            background-color: var(--dark-bg);
+        }
+
+        .message-input-wrapper {
+            display: flex;
+            align-items: center;
+            background-color: var(--input-bg);
+            border-radius: 8px;
+            padding: 0 12px;
+        }
+
+        .message-input {
+            flex: 1;
+            background-color: transparent;
+            border: none;
+            padding: 12px;
+            color: var(--text-color);
+            font-size: 15px;
+            resize: none;
+            outline: none;
+        }
+
+        .message-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .send-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .send-button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .send-button:disabled {
+            background-color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        /* Stylizacja panelu użytkowników */
+        .users-sidebar {
+            width: 240px;
+            background-color: var(--darker-bg);
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .users-title {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .user-item:hover {
+            background-color: rgba(79, 84, 92, 0.16);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #ed4245;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 12px;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .user-name {
+            font-weight: 500;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-activity {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Stylizacja profilu użytkownika */
+        .user-profile {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background-color: #292b2f;
+            border-top: 1px solid var(--border-color);
+            margin-top: auto;
+        }
+
+        .profile-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #5865f2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 8px;
+            position: relative;
+        }
+
+        .profile-info {
+            flex: 1;
+        }
+
+        .profile-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .profile-tag {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .profile-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .profile-controls i {
+            padding: 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .profile-controls i:hover {
+            background-color: rgba(79, 84, 92, 0.16);
+            color: var(--text-color);
+        }
+
+        /* Stylizacja ekranu logowania */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .login-container {
+            background-color: var(--dark-bg);
+            width: 480px;
+            border-radius: 8px;
+            padding: 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .login-logo {
+            font-size: 28px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .login-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .login-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .login-button {
+            padding: 12px;
+            border-radius: 4px;
+            border: none;
+            font-weight: 500;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        .login-button.google {
+            background-color: #ffffff;
+            color: #333;
+        }
+
+        .login-button.google:hover {
+            background-color: #f0f0f0;
+        }
+
+        .login-button.discord {
+            background-color: #5865f2;
+            color: white;
+        }
+
+        .login-button.discord:hover {
+            background-color: #4752c4;
+        }
+
+        .login-button i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        .login-footer {
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .login-footer a {
+            color: #00aff4;
+            text-decoration: none;
+        }
+
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Stylizacja responsywności */
+        @media (max-width: 1200px) {
+            .users-sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .channels-sidebar {
+                display: none;
+            }
+            
+            .servers-sidebar {
+                width: 60px;
+            }
+        }
+
+        /* Stylizacja scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #202225;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2e3338;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .notification.success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .notification.error {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        .notification.info {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
+    <!-- Ekran logowania -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="login-logo">Curl</div>
+                <h2 class="login-title">Witaj w Curl!</h2>
+                <p class="login-subtitle">Zaloguj się, aby kontynuować</p>
+            </div>
+            <div class="login-buttons">
+                <button class="login-button google" id="googleLoginBtn">
+                    <i class="fab fa-google"></i> Zaloguj przez Google
+                </button>
+                <button class="login-button discord" id="discordLoginBtn">
+                    <i class="fab fa-discord"></i> Zaloguj przez Discord
+                </button>
+            </div>
+            <div class="login-footer">
+                <p>Logując się, akceptujesz <a href="#">Warunki korzystania z usługi</a> i <a href="#">Politykę prywatności</a>.</p>
+            </div>
+        </div>
+    </div>
 
-<div class="container" id="auth">
-  <h2>Clur</h2>
-  <input type="text" id="nickname" placeholder="Pseudonim">
-  <input type="password" id="password" placeholder="Hasło">
-  <button onclick="register()">Rejestracja</button>
-  <button onclick="login()">Logowanie</button>
-  <p id="authMsg"></p>
-</div>
+    <!-- Notification area -->
+    <div id="notificationArea"></div>
 
-<div class="container hidden" id="app">
-  <h2 id="welcome"></h2>
-  <div class="friends">
-    <h3>Znajomi</h3>
-    <div id="friendsList"></div>
-    <input type="text" id="newFriend" placeholder="Dodaj znajomego">
-    <button onclick="addFriend()">Dodaj</button>
-  </div>
+    <!-- Panel serwerów (pokazany po zalogowaniu) -->
+    <div class="servers-sidebar hidden" id="serversSidebar">
+        <div class="server-icon curlio active" title="Curlio">
+            C
+        </div>
+        <div class="divider"></div>
+        <div class="server-icon" style="background-color: #3ba55d;" title="Gaming">
+            <i class="fas fa-gamepad"></i>
+        </div>
+        <div class="server-icon" style="background-color: #ed4245;" title="Muzyka">
+            <i class="fas fa-music"></i>
+        </div>
+        <div class="server-icon" style="background-color: #faa81a;" title="Programowanie">
+            <i class="fas fa-code"></i>
+        </div>
+        <div class="server-icon add-server" title="Dodaj serwer">
+            <i class="fas fa-plus"></i>
+        </div>
+    </div>
 
-  <div class="servers">
-    <h3>Serwery</h3>
-    <div id="serversList"></div>
-    <input type="text" id="newServer" placeholder="Dodaj serwer (np. strona.com/link)">
-    <button onclick="addServer()">Dodaj</button>
-  </div>
+    <!-- Główna część aplikacji (pokazana po zalogowaniu) -->
+    <div class="main-container hidden" id="mainContainer">
+        <!-- Panel kanałów/znajomych -->
+        <div class="channels-sidebar">
+            <div class="server-header">
+                <span>Główny serwer</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="channels-list">
+                <div class="channel-category">
+                    <div class="category-title">
+                        <span>KANAŁY TEKSTOWE</span>
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <div class="channel-item active">
+                        <i class="fas fa-hashtag channel-icon"></i>
+                        <span>ogólny</span>
+                    </div>
+                    <div class="channel-item">
+                        <i class="fas fa-hashtag channel-icon"></i>
+                        <span>muzyka</span>
+                    </div>
+                    <div class="channel-item">
+                        <i class="fas fa-hashtag channel-icon"></i>
+                        <span>gaming</span>
+                    </div>
+                </div>
+                
+                <div class="channel-category">
+                    <div class="category-title">
+                        <span>ZNAJOMI</span>
+                        <span id="onlineCount">-</span>
+                    </div>
+                    <div class="friends-list" id="friendsList">
+                        <!-- Znajomi będą ładowani dynamicznie z Firebase -->
+                        <div class="friend-item">
+                            <div class="friend-avatar">
+                                <span>JD</span>
+                                <div class="status-indicator status-online"></div>
+                            </div>
+                            <div class="friend-info">
+                                <div class="friend-name">Jan Demo</div>
+                                <div class="friend-status">Online</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Profil użytkownika -->
+            <div class="user-profile" id="userProfile">
+                <div class="profile-avatar" id="userAvatar">
+                    <span>?</span>
+                </div>
+                <div class="profile-info">
+                    <div class="profile-name" id="userName">Ładowanie...</div>
+                    <div class="profile-tag" id="userTag">#0000</div>
+                </div>
+                <div class="profile-controls">
+                    <i class="fas fa-microphone"></i>
+                    <i class="fas fa-headphones"></i>
+                    <i class="fas fa-cog" id="settingsBtn"></i>
+                </div>
+            </div>
+        </div>
 
-  <div class="chat hidden" id="chatBox">
-    <h3 id="chatWith"></h3>
-    <div class="messages" id="messages"></div>
-    <input type="text" id="msgInput" placeholder="Napisz wiadomość...">
-    <button onclick="sendMessage()">Wyślij</button>
-  </div>
-</div>
+        <!-- Obszar czatu -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <i class="fas fa-hashtag chat-header-icon"></i>
+                <span class="chat-header-title">ogólny</span>
+                <span class="chat-header-topic">• Ogólny kanał rozmów</span>
+            </div>
+            
+            <div class="messages-container" id="messagesContainer">
+                <!-- Wiadomości będą ładowane dynamicznie z Firebase -->
+                <div class="message">
+                    <div class="message-avatar" style="background-color: #3ba55d;">
+                        <span>C</span>
+                    </div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-author">Curl</span>
+                            <span class="message-time">Dzisiaj o 12:00</span>
+                        </div>
+                        <div class="message-text">
+                            Witaj na Curl! Możesz zacząć pisać wiadomości na tym kanale.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="message-input-container">
+                <div class="message-input-wrapper">
+                    <textarea 
+                        class="message-input" 
+                        id="messageInput" 
+                        placeholder="Napisz wiadomość na #ogólny" 
+                        rows="1"
+                        oninput="autoResize(this)"
+                    ></textarea>
+                    <button class="send-button" id="sendMessageBtn" disabled>
+                        Wyślij
+                    </button>
+                </div>
+            </div>
+        </div>
 
-<script>
-  // TODO: Wstaw swoje dane konfiguracyjne Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyCVETOQpi892lZWa3HkmsPNYEy-99HdH3s",
-  authDomain: "clur-8c2c7.firebaseapp.com",
-  projectId: "clur-8c2c7",
-  storageBucket: "clur-8c2c7.firebasestorage.app",
-  messagingSenderId: "328040168713",
-  appId: "1:328040168713:web:bdf671c9f373aebc1127d8",
-  measurementId: "G-PVRYRH7VJ2"
+        <!-- Panel użytkowników online -->
+        <div class="users-sidebar">
+            <div class="users-title">UŻYTKOWNICY ONLINE — <span id="onlineUsersCount">0</span></div>
+            <div id="onlineUsersList">
+                <!-- Użytkownicy online będą ładowani dynamicznie -->
+                <div class="user-item">
+                    <div class="user-avatar" style="background-color: #5865f2;">
+                        <span>C</span>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">Curl</div>
+                        <div class="user-activity">System</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Konfiguracja Firebase - TUTAJ WPISZ SWOJE DANE Z FIREBASE
+        const firebaseConfig = {
+  apiKey: "AIzaSyC7hMKirNQ9ltCU7AUWyJtf8fG9Y_EfPgQ",
+  authDomain: "curl-1225d.firebaseapp.com",
+  projectId: "curl-1225d",
+  storageBucket: "curl-1225d.firebasestorage.app",
+  messagingSenderId: "149369739586",
+  appId: "1:149369739586:web:c3814530dc33b1e219d0db",
+  measurementId: "G-3YQWJM1Y94"
 };
 
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+        // Inicjalizacja Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
-  let currentUser = null;
-  let currentChat = null;
+        // Referencje do elementów DOM
+        const loginOverlay = document.getElementById('loginOverlay');
+        const serversSidebar = document.getElementById('serversSidebar');
+        const mainContainer = document.getElementById('mainContainer');
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
+        const discordLoginBtn = document.getElementById('discordLoginBtn');
+        const messageInput = document.getElementById('messageInput');
+        const sendMessageBtn = document.getElementById('sendMessageBtn');
+        const messagesContainer = document.getElementById('messagesContainer');
+        const onlineUsersList = document.getElementById('onlineUsersList');
+        const onlineUsersCount = document.getElementById('onlineUsersCount');
+        const friendsList = document.getElementById('friendsList');
+        const onlineCount = document.getElementById('onlineCount');
+        const userProfile = document.getElementById('userProfile');
+        const userAvatar = document.getElementById('userAvatar');
+        const userName = document.getElementById('userName');
+        const userTag = document.getElementById('userTag');
+        const notificationArea = document.getElementById('notificationArea');
+        const settingsBtn = document.getElementById('settingsBtn');
 
-  function register() {
-    const nick = document.getElementById('nickname').value;
-    const pwd = document.getElementById('password').value;
-    auth.createUserWithEmailAndPassword(nick + '@clur.com', pwd)
-      .then(userCredential => {
-        currentUser = userCredential.user;
-        db.collection('users').doc(currentUser.uid).set({ nickname: nick, friends: [], servers: [] });
-        showApp(nick);
-      })
-      .catch(err => document.getElementById('authMsg').innerText = err.message);
-  }
+        // Zmienne globalne
+        let currentUser = null;
+        let unsubscribeMessages = null;
+        let unsubscribeUsers = null;
 
-  function login() {
-    const nick = document.getElementById('nickname').value;
-    const pwd = document.getElementById('password').value;
-    auth.signInWithEmailAndPassword(nick + '@clur.com', pwd)
-      .then(userCredential => {
-        currentUser = userCredential.user;
-        db.collection('users').doc(currentUser.uid).get().then(doc => {
-          showApp(doc.data().nickname);
+        // Funkcja do wyświetlania powiadomień
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            notificationArea.appendChild(notification);
+            
+            // Usuń powiadomienie po 5 sekundach
+            setTimeout(() => {
+                notification.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 5000);
+        }
+
+        // Funkcja do automatycznego zwiększania wysokości textarea
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = (textarea.scrollHeight) + 'px';
+            
+            // Włącz/wyłącz przycisk wysyłania
+            sendMessageBtn.disabled = textarea.value.trim() === '';
+        }
+
+        // Funkcja do logowania przez Google
+        function loginWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    showNotification('Zalogowano przez Google!', 'success');
+                    // Użytkownik jest automatycznie zapisywany w onAuthStateChanged
+                })
+                .catch((error) => {
+                    console.error('Błąd logowania przez Google:', error);
+                    showNotification(`Błąd logowania: ${error.message}`, 'error');
+                });
+        }
+
+        // Symulacja logowania przez Discord (Firebase nie ma natywnego providera Discord)
+        function loginWithDiscord() {
+            showNotification('Logowanie przez Discord jest w trakcie implementacji. Użyj Google dla demonstracji.', 'info');
+            
+            // W wersji demonstracyjnej używamy Google
+            // W prawdziwej aplikacji trzeba by użyć OAuth2 Discord
+            setTimeout(() => {
+                loginWithGoogle();
+            }, 1000);
+        }
+
+        // Funkcja do wysyłania wiadomości
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+            if (!messageText || !currentUser) return;
+            
+            const messageData = {
+                text: messageText,
+                userId: currentUser.uid,
+                userName: currentUser.displayName || 'Anonim',
+                userAvatar: currentUser.photoURL || '',
+                userInitials: getInitials(currentUser.displayName || 'A'),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                channelId: 'general' // Domyślny kanał
+            };
+            
+            db.collection('messages').add(messageData)
+                .then(() => {
+                    messageInput.value = '';
+                    messageInput.style.height = 'auto';
+                    sendMessageBtn.disabled = true;
+                })
+                .catch((error) => {
+                    console.error('Błąd wysyłania wiadomości:', error);
+                    showNotification('Nie udało się wysłać wiadomości', 'error');
+                });
+        }
+
+        // Funkcja do pobierania inicjałów z nazwy
+        function getInitials(name) {
+            return name.split(' ')
+                .map(part => part.charAt(0))
+                .join('')
+                .toUpperCase()
+                .substring(0, 2);
+        }
+
+        // Funkcja do ładowania wiadomości w czasie rzeczywistym
+        function loadMessages() {
+            // Najpierw odsubskrybuj poprzedni listener jeśli istnieje
+            if (unsubscribeMessages) unsubscribeMessages();
+            
+            unsubscribeMessages = db.collection('messages')
+                .where('channelId', '==', 'general')
+                .orderBy('timestamp', 'asc')
+                .limit(100)
+                .onSnapshot((snapshot) => {
+                    messagesContainer.innerHTML = '';
+                    
+                    // Dodaj domyślną wiadomość systemową
+                    const welcomeMessage = document.createElement('div');
+                    welcomeMessage.className = 'message';
+                    welcomeMessage.innerHTML = `
+                        <div class="message-avatar" style="background-color: #3ba55d;">
+                            <span>C</span>
+                        </div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="message-author">Curl</span>
+                                <span class="message-time">Dzisiaj o ${new Date().toLocaleTimeString('pl-PL', {hour: '2-digit', minute:'2-digit'})}</span>
+                            </div>
+                            <div class="message-text">
+                                Witaj na Curl! To jest kanał ogólny. Możesz zacząć pisać wiadomości.
+                            </div>
+                        </div>
+                    `;
+                    messagesContainer.appendChild(welcomeMessage);
+                    
+                    // Dodaj wiadomości z Firestore
+                    snapshot.forEach((doc) => {
+                        const message = doc.data();
+                        const messageElement = document.createElement('div');
+                        messageElement.className = 'message';
+                        
+                        // Formatowanie czasu
+                        let timeString = 'Przed chwilą';
+                        if (message.timestamp) {
+                            const date = message.timestamp.toDate();
+                            const now = new Date();
+                            const diffMs = now - date;
+                            const diffMins = Math.floor(diffMs / 60000);
+                            
+                            if (diffMins < 1) {
+                                timeString = 'Przed chwilą';
+                            } else if (diffMins < 60) {
+                                timeString = `${diffMins} min temu`;
+                            } else {
+                                timeString = date.toLocaleTimeString('pl-PL', {hour: '2-digit', minute:'2-digit'});
+                            }
+                        }
+                        
+                        // Wybór koloru awatara na podstawie nazwy użytkownika
+                        const colors = ['#5865f2', '#3ba55d', '#ed4245', '#faa81a', '#eb459e', '#ff73fa'];
+                        const colorIndex = message.userName.length % colors.length;
+                        const avatarColor = colors[colorIndex];
+                        
+                        messageElement.innerHTML = `
+                            <div class="message-avatar" style="background-color: ${avatarColor};">
+                                <span>${message.userInitials || getInitials(message.userName)}</span>
+                            </div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">${message.userName}</span>
+                                    <span class="message-time">${timeString}</span>
+                                </div>
+                                <div class="message-text">${message.text}</div>
+                            </div>
+                        `;
+                        messagesContainer.appendChild(messageElement);
+                    });
+                    
+                    // Przewiń na dół
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }, (error) => {
+                    console.error('Błąd ładowania wiadomości:', error);
+                });
+        }
+
+        // Funkcja do śledzenia aktywnych użytkowników
+        function trackOnlineUsers() {
+            // Najpierw odsubskrybuj poprzedni listener jeśli istnieje
+            if (unsubscribeUsers) unsubscribeUsers();
+            
+            const userStatusRef = db.collection('status').doc(currentUser.uid);
+            const isOfflineForFirestore = {
+                state: 'offline',
+                lastChanged: firebase.firestore.FieldValue.serverTimestamp(),
+                userId: currentUser.uid,
+                userName: currentUser.displayName || 'Użytkownik',
+                userAvatar: currentUser.photoURL || ''
+            };
+            
+            const isOnlineForFirestore = {
+                state: 'online',
+                lastChanged: firebase.firestore.FieldValue.serverTimestamp(),
+                userId: currentUser.uid,
+                userName: currentUser.displayName || 'Użytkownik',
+                userAvatar: currentUser.photoURL || ''
+            };
+            
+            // Ustawienie statusu online
+            db.collection('status').doc(currentUser.uid).set(isOnlineForFirestore);
+            
+            // Nasłuchiwanie zmian w statusach użytkowników
+            unsubscribeUsers = db.collection('status')
+                .where('state', '==', 'online')
+                .onSnapshot((snapshot) => {
+                    onlineUsersList.innerHTML = '';
+                    let onlineCountNum = 0;
+                    
+                    // Dodaj systemowego użytkownika Curl
+                    const systemUser = document.createElement('div');
+                    systemUser.className = 'user-item';
+                    systemUser.innerHTML = `
+                        <div class="user-avatar" style="background-color: #5865f2;">
+                            <span>C</span>
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name">Curl</div>
+                            <div class="user-activity">System</div>
+                        </div>
+                    `;
+                    onlineUsersList.appendChild(systemUser);
+                    onlineCountNum++;
+                    
+                    // Dodaj zalogowanych użytkowników
+                    snapshot.forEach((doc) => {
+                        const userData = doc.data();
+                        if (userData.userId === currentUser.uid) return; // Pomijamy siebie
+                        
+                        onlineCountNum++;
+                        
+                        const userItem = document.createElement('div');
+                        userItem.className = 'user-item';
+                        
+                        const colors = ['#5865f2', '#3ba55d', '#ed4245', '#faa81a', '#eb459e'];
+                        const colorIndex = userData.userName.length % colors.length;
+                        const avatarColor = colors[colorIndex];
+                        
+                        userItem.innerHTML = `
+                            <div class="user-avatar" style="background-color: ${avatarColor};">
+                                <span>${getInitials(userData.userName)}</span>
+                                <div class="status-indicator status-online"></div>
+                            </div>
+                            <div class="user-info">
+                                <div class="user-name">${userData.userName}</div>
+                                <div class="user-activity">Na Curl</div>
+                            </div>
+                        `;
+                        onlineUsersList.appendChild(userItem);
+                    });
+                    
+                    onlineUsersCount.textContent = onlineCountNum;
+                    onlineCount.textContent = onlineCountNum;
+                    
+                    // Zaktualizuj listę znajomych
+                    updateFriendsList(snapshot);
+                });
+            
+            // Ustawienie statusu offline po zamknięciu
+            window.addEventListener('beforeunload', () => {
+                userStatusRef.set(isOfflineForFirestore);
+            });
+        }
+
+        // Funkcja do aktualizacji listy znajomych
+        function updateFriendsList(usersSnapshot) {
+            friendsList.innerHTML = '';
+            
+            usersSnapshot.forEach((doc) => {
+                const userData = doc.data();
+                
+                const friendItem = document.createElement('div');
+                friendItem.className = 'friend-item';
+                
+                const colors = ['#5865f2', '#3ba55d', '#ed4245', '#faa81a', '#eb459e'];
+                const colorIndex = userData.userName.length % colors.length;
+                const avatarColor = colors[colorIndex];
+                
+                friendItem.innerHTML = `
+                    <div class="friend-avatar" style="background-color: ${avatarColor};">
+                        <span>${getInitials(userData.userName)}</span>
+                        <div class="status-indicator ${userData.state === 'online' ? 'status-online' : 'status-offline'}"></div>
+                    </div>
+                    <div class="friend-info">
+                        <div class="friend-name">${userData.userName}</div>
+                        <div class="friend-status">${userData.state === 'online' ? 'Online' : 'Offline'}</div>
+                    </div>
+                `;
+                friendsList.appendChild(friendItem);
+            });
+        }
+
+        // Funkcja do aktualizacji profilu użytkownika
+        function updateUserProfile(user) {
+            const displayName = user.displayName || 'Użytkownik';
+            const photoURL = user.photoURL;
+            const initials = getInitials(displayName);
+            
+            userName.textContent = displayName;
+            userTag.textContent = `#${user.uid.substring(0, 4)}`;
+            
+            if (photoURL) {
+                userAvatar.style.backgroundImage = `url(${photoURL})`;
+                userAvatar.style.backgroundSize = 'cover';
+                userAvatar.innerHTML = '';
+            } else {
+                userAvatar.style.backgroundImage = '';
+                userAvatar.innerHTML = `<span>${initials}</span>`;
+                
+                // Wybór koloru awatara
+                const colors = ['#5865f2', '#3ba55d', '#ed4245', '#faa81a', '#eb459e'];
+                const colorIndex = displayName.length % colors.length;
+                userAvatar.style.backgroundColor = colors[colorIndex];
+            }
+        }
+
+        // Obsługa stanu uwierzytelnienia
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // Użytkownik zalogowany
+                currentUser = user;
+                
+                // Zaktualizuj profil
+                updateUserProfile(user);
+                
+                // Zapisz użytkownika w Firestore (jeśli nie istnieje)
+                db.collection('users').doc(user.uid).set({
+                    uid: user.uid,
+                    displayName: user.displayName || 'Użytkownik',
+                    email: user.email,
+                    photoURL: user.photoURL || '',
+                    lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                
+                // Przełącz widok
+                loginOverlay.classList.add('hidden');
+                serversSidebar.classList.remove('hidden');
+                mainContainer.classList.remove('hidden');
+                
+                // Załaduj wiadomości
+                loadMessages();
+                
+                // Śledź aktywnych użytkowników
+                trackOnlineUsers();
+                
+                showNotification(`Witaj, ${user.displayName || 'Użytkowniku'}!`, 'success');
+            } else {
+                // Użytkownik wylogowany
+                currentUser = null;
+                
+                // Odsubskrybuj listenery
+                if (unsubscribeMessages) unsubscribeMessages();
+                if (unsubscribeUsers) unsubscribeUsers();
+                
+                // Przełącz widok
+                loginOverlay.classList.remove('hidden');
+                serversSidebar.classList.add('hidden');
+                mainContainer.classList.add('hidden');
+                
+                // Wyczyść pola
+                messageInput.value = '';
+                sendMessageBtn.disabled = true;
+            }
         });
-      })
-      .catch(err => document.getElementById('authMsg').innerText = err.message);
-  }
 
-  function showApp(nick) {
-    document.getElementById('auth').classList.add('hidden');
-    document.getElementById('app').classList.remove('hidden');
-    document.getElementById('welcome').innerText = 'Witaj, ' + nick;
-    renderFriends();
-    renderServers();
-  }
+        // Obsługa wylogowania
+        function logout() {
+            // Ustaw status offline przed wylogowaniem
+            if (currentUser) {
+                db.collection('status').doc(currentUser.uid).set({
+                    state: 'offline',
+                    lastChanged: firebase.firestore.FieldValue.serverTimestamp(),
+                    userId: currentUser.uid,
+                    userName: currentUser.displayName || 'Użytkownik',
+                    userAvatar: currentUser.photoURL || ''
+                });
+            }
+            
+            auth.signOut()
+                .then(() => {
+                    showNotification('Wylogowano pomyślnie', 'info');
+                })
+                .catch((error) => {
+                    console.error('Błąd wylogowania:', error);
+                });
+        }
 
-  function addFriend() {
-    const friendNick = document.getElementById('newFriend').value;
-    alert('Dodawanie znajomego wymaga implementacji Firestore logic');
-  }
+        // Obsługa zdarzeń
+        googleLoginBtn.addEventListener('click', loginWithGoogle);
+        discordLoginBtn.addEventListener('click', loginWithDiscord);
+        
+        sendMessageBtn.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
 
-  function renderFriends() {
-    document.getElementById('friendsList').innerHTML = '';
-    // TODO: pobieranie znajomych z Firestore
-  }
+        // Obsługa przycisku ustawień (wylogowanie)
+        settingsBtn.addEventListener('click', () => {
+            if (confirm('Czy na pewno chcesz się wylogować?')) {
+                logout();
+            }
+        });
 
-  function addServer() {
-    const serverLink = document.getElementById('newServer').value;
-    alert('Dodawanie serwera wymaga implementacji Firestore logic');
-  }
+        // Dodanie ikon dla serwerów
+        document.addEventListener('DOMContentLoaded', () => {
+            // W przypadku braku Firebase, pokaż demo
+            setTimeout(() => {
+                if (!currentUser) {
+                    showNotification('Użyj przycisku Google, aby zalogować się do demo', 'info');
+                }
+            }, 2000);
+        });
 
-  function renderServers() {
-    document.getElementById('serversList').innerHTML = '';
-    // TODO: pobieranie serwerów z Firestore
-  }
-
-  function openChat(friend) {
-    currentChat = friend;
-    document.getElementById('chatBox').classList.remove('hidden');
-    document.getElementById('chatWith').innerText = 'Czat z ' + friend;
-    renderMessages();
-  }
-
-  function sendMessage() {
-    alert('Wysyłanie wiadomości wymaga implementacji Firestore logic');
-  }
-
-  function renderMessages() {
-    document.getElementById('messages').innerHTML = '';
-    // TODO: pobieranie wiadomości z Firestore
-  }
-</script>
+        // Informacja o konfiguracji Firebase
+        console.log('Aby używać Firebase, skonfiguruj swój projekt na https://console.firebase.google.com/');
+        console.log('i wklej swoją konfigurację w linijkach 608-615 w kodzie.');
+        console.log('Bez konfiguracji Firebase aplikacja będzie działać w trybie demo (tylko widok).');
+    </script>
 </body>
 </html>
