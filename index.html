@@ -13,6 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     
     <style>
         * {
@@ -32,11 +33,16 @@
             --text-muted: #72767d;
             --online-status: #3ba55d;
             --idle-status: #faa81a;
+            --dnd-status: #ed4245;
             --border-color: #202225;
             --message-hover: #32353b;
             --input-bg: #40444b;
             --success-color: #3ba55d;
             --error-color: #ed4245;
+            --warning-color: #faa81a;
+            --owner-color: #faa81a;
+            --admin-color: #ed4245;
+            --mod-color: #5865f2;
         }
 
         body {
@@ -71,6 +77,7 @@
             transition: border-radius 0.2s, background-color 0.2s;
             font-weight: bold;
             color: white;
+            position: relative;
         }
 
         .server-icon:hover {
@@ -93,6 +100,22 @@
             background-color: var(--primary-color);
             color: white;
             font-size: 18px;
+        }
+
+        .server-indicator {
+            position: absolute;
+            left: -4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 0;
+            background-color: white;
+            border-radius: 0 4px 4px 0;
+            transition: height 0.2s;
+        }
+
+        .server-icon.active .server-indicator {
+            height: 20px;
         }
 
         .divider {
@@ -124,6 +147,39 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .server-header:hover {
+            background-color: rgba(79, 84, 92, 0.16);
+        }
+
+        .server-dropdown {
+            position: absolute;
+            top: 50px;
+            left: 240px;
+            background-color: var(--darker-bg);
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            width: 200px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .server-dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .server-dropdown-item:hover {
+            background-color: rgba(79, 84, 92, 0.16);
+        }
+
+        .server-dropdown-item.delete {
+            color: var(--error-color);
         }
 
         .channels-list {
@@ -147,6 +203,18 @@
             align-items: center;
         }
 
+        .add-channel-btn {
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 2px;
+            border-radius: 4px;
+        }
+
+        .add-channel-btn:hover {
+            color: var(--text-color);
+            background-color: rgba(79, 84, 92, 0.16);
+        }
+
         .channel-item {
             padding: 8px;
             border-radius: 4px;
@@ -155,6 +223,7 @@
             align-items: center;
             margin-bottom: 2px;
             color: var(--text-muted);
+            position: relative;
         }
 
         .channel-item:hover {
@@ -172,6 +241,17 @@
             font-size: 14px;
         }
 
+        .channel-settings {
+            position: absolute;
+            right: 8px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .channel-item:hover .channel-settings {
+            opacity: 1;
+        }
+
         /* Stylizacja znajomych */
         .friends-list {
             padding: 16px;
@@ -186,6 +266,7 @@
             border-radius: 4px;
             margin-bottom: 4px;
             cursor: pointer;
+            position: relative;
         }
 
         .friend-item:hover {
@@ -223,6 +304,10 @@
             background-color: var(--idle-status);
         }
 
+        .status-dnd {
+            background-color: var(--dnd-status);
+        }
+
         .status-offline {
             background-color: var(--text-muted);
         }
@@ -234,11 +319,47 @@
         .friend-name {
             font-weight: 500;
             font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .friend-badge {
+            font-size: 10px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .badge-owner {
+            background-color: var(--owner-color);
+            color: #000;
+        }
+
+        .badge-admin {
+            background-color: var(--admin-color);
+            color: white;
+        }
+
+        .badge-mod {
+            background-color: var(--mod-color);
+            color: white;
         }
 
         .friend-status {
             font-size: 12px;
             color: var(--text-muted);
+        }
+
+        .friend-actions {
+            opacity: 0;
+            transition: opacity 0.2s;
+            display: flex;
+            gap: 4px;
+        }
+
+        .friend-item:hover .friend-actions {
+            opacity: 1;
         }
 
         /* Stylizacja obszaru czatu */
@@ -287,6 +408,7 @@
             margin-bottom: 20px;
             padding: 2px 16px;
             border-radius: 4px;
+            position: relative;
         }
 
         .message:hover {
@@ -304,6 +426,19 @@
             font-weight: bold;
             margin-right: 16px;
             flex-shrink: 0;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .message-avatar:hover::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.3);
         }
 
         .message-content {
@@ -320,6 +455,9 @@
             font-weight: 600;
             font-size: 16px;
             margin-right: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .message-time {
@@ -330,6 +468,39 @@
         .message-text {
             font-size: 15px;
             line-height: 1.4;
+        }
+
+        .message-actions {
+            position: absolute;
+            right: 16px;
+            top: 8px;
+            background-color: var(--darker-bg);
+            border-radius: 4px;
+            display: flex;
+            gap: 4px;
+            padding: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .message:hover .message-actions {
+            opacity: 1;
+        }
+
+        .message-action-btn {
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            background-color: transparent;
+            border: none;
+            color: var(--text-muted);
+        }
+
+        .message-action-btn:hover {
+            background-color: rgba(79, 84, 92, 0.16);
+            color: var(--text-color);
         }
 
         /* Stylizacja pola tekstowego */
@@ -344,6 +515,20 @@
             background-color: var(--input-bg);
             border-radius: 8px;
             padding: 0 12px;
+            position: relative;
+        }
+
+        .emoji-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 8px;
+            font-size: 18px;
+        }
+
+        .emoji-btn:hover {
+            color: var(--text-color);
         }
 
         .message-input {
@@ -355,6 +540,8 @@
             font-size: 15px;
             resize: none;
             outline: none;
+            min-height: 20px;
+            max-height: 200px;
         }
 
         .message-input::placeholder {
@@ -370,6 +557,7 @@
             cursor: pointer;
             font-weight: 500;
             transition: background-color 0.2s;
+            margin-left: 8px;
         }
 
         .send-button:hover {
@@ -387,6 +575,8 @@
             background-color: var(--darker-bg);
             padding: 16px;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
 
         .users-title {
@@ -403,6 +593,7 @@
             margin-bottom: 12px;
             padding: 4px;
             border-radius: 4px;
+            position: relative;
         }
 
         .user-item:hover {
@@ -434,6 +625,14 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .user-tag {
+            font-size: 12px;
+            color: var(--text-muted);
         }
 
         .user-activity {
@@ -452,6 +651,7 @@
             background-color: #292b2f;
             border-top: 1px solid var(--border-color);
             margin-top: auto;
+            position: relative;
         }
 
         .profile-avatar {
@@ -465,6 +665,7 @@
             font-weight: bold;
             margin-right: 8px;
             position: relative;
+            cursor: pointer;
         }
 
         .profile-info {
@@ -474,6 +675,9 @@
         .profile-name {
             font-weight: 600;
             font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .profile-tag {
@@ -601,6 +805,203 @@
             text-decoration: underline;
         }
 
+        /* Stylizacja modali */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            display: none;
+        }
+
+        .modal {
+            background-color: var(--dark-bg);
+            border-radius: 8px;
+            padding: 24px;
+            width: 440px;
+            max-width: 90vw;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .modal-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 16px;
+            background-color: var(--input-bg);
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 10px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .modal-btn.primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .modal-btn.secondary {
+            background-color: var(--darker-bg);
+            color: var(--text-color);
+        }
+
+        .modal-btn.danger {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            z-index: 1002;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            animation: slideIn 0.3s ease-out;
+            max-width: 400px;
+        }
+
+        .notification.success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .notification.error {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        .notification.info {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .notification.warning {
+            background-color: var(--warning-color);
+            color: black;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Emoji picker */
+        .emoji-picker {
+            position: absolute;
+            bottom: 70px;
+            left: 16px;
+            background-color: var(--darker-bg);
+            border-radius: 8px;
+            padding: 12px;
+            width: 300px;
+            max-height: 300px;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+        }
+
+        .emoji-item {
+            font-size: 20px;
+            padding: 8px;
+            cursor: pointer;
+            text-align: center;
+            border-radius: 4px;
+        }
+
+        .emoji-item:hover {
+            background-color: rgba(79, 84, 92, 0.16);
+        }
+
+        /* Context menu */
+        .context-menu {
+            position: fixed;
+            background-color: var(--darker-bg);
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            min-width: 200px;
+            display: none;
+        }
+
+        .context-menu-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .context-menu-item:hover {
+            background-color: rgba(79, 84, 92, 0.16);
+        }
+
+        .context-menu-item.delete {
+            color: var(--error-color);
+        }
+
         /* Stylizacja responsywności */
         @media (max-width: 1200px) {
             .users-sidebar {
@@ -635,52 +1036,6 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #2e3338;
         }
-
-        /* Notification */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 4px;
-            font-weight: 500;
-            z-index: 1001;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            animation: slideIn 0.3s ease-out;
-        }
-
-        .notification.success {
-            background-color: var(--success-color);
-            color: white;
-        }
-
-        .notification.error {
-            background-color: var(--error-color);
-            color: white;
-        }
-
-        .notification.info {
-            background-color: var(--primary-color);
-            color: white;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        .hidden {
-            display: none !important;
-        }
     </style>
 </head>
 <body>
@@ -709,71 +1064,58 @@
     <!-- Notification area -->
     <div id="notificationArea"></div>
 
-    <!-- Panel serwerów (pokazany po zalogowaniu) -->
+    <!-- Panel serwerów -->
     <div class="servers-sidebar hidden" id="serversSidebar">
-        <div class="server-icon curlio active" title="Curlio">
+        <div class="server-icon curlio active" title="Curlio" data-server-id="main">
             C
+            <div class="server-indicator"></div>
         </div>
         <div class="divider"></div>
-        <div class="server-icon" style="background-color: #3ba55d;" title="Gaming">
-            <i class="fas fa-gamepad"></i>
-        </div>
-        <div class="server-icon" style="background-color: #ed4245;" title="Muzyka">
-            <i class="fas fa-music"></i>
-        </div>
-        <div class="server-icon" style="background-color: #faa81a;" title="Programowanie">
-            <i class="fas fa-code"></i>
-        </div>
-        <div class="server-icon add-server" title="Dodaj serwer">
+        <!-- Serwery będą ładowane dynamicznie -->
+        <div class="server-icon add-server" title="Dodaj serwer" id="addServerBtn">
             <i class="fas fa-plus"></i>
         </div>
     </div>
 
-    <!-- Główna część aplikacji (pokazana po zalogowaniu) -->
+    <!-- Główna część aplikacji -->
     <div class="main-container hidden" id="mainContainer">
         <!-- Panel kanałów/znajomych -->
         <div class="channels-sidebar">
-            <div class="server-header">
-                <span>Główny serwer</span>
+            <div class="server-header" id="serverHeader">
+                <span id="currentServerName">Główny serwer</span>
                 <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="server-dropdown" id="serverDropdown">
+                <div class="server-dropdown-item" id="serverSettingsBtn">
+                    <i class="fas fa-cog"></i>
+                    <span>Ustawienia serwera</span>
+                </div>
+                <div class="server-dropdown-item" id="createChannelBtn">
+                    <i class="fas fa-plus"></i>
+                    <span>Stwórz kanał</span>
+                </div>
+                <div class="server-dropdown-item delete" id="deleteServerBtn">
+                    <i class="fas fa-trash"></i>
+                    <span>Usuń serwer</span>
+                </div>
             </div>
             <div class="channels-list">
                 <div class="channel-category">
                     <div class="category-title">
                         <span>KANAŁY TEKSTOWE</span>
-                        <i class="fas fa-plus"></i>
+                        <i class="fas fa-plus add-channel-btn" id="addChannelBtn"></i>
                     </div>
-                    <div class="channel-item active">
-                        <i class="fas fa-hashtag channel-icon"></i>
-                        <span>ogólny</span>
-                    </div>
-                    <div class="channel-item">
-                        <i class="fas fa-hashtag channel-icon"></i>
-                        <span>muzyka</span>
-                    </div>
-                    <div class="channel-item">
-                        <i class="fas fa-hashtag channel-icon"></i>
-                        <span>gaming</span>
+                    <div class="channel-list" id="channelList">
+                        <!-- Kanały będą ładowane dynamicznie -->
                     </div>
                 </div>
                 
                 <div class="channel-category">
                     <div class="category-title">
-                        <span>ZNAJOMI</span>
-                        <span id="onlineCount">-</span>
+                        <span>CZŁONKOWIE — <span id="onlineCount">0</span></span>
                     </div>
                     <div class="friends-list" id="friendsList">
-                        <!-- Znajomi będą ładowani dynamicznie z Firebase -->
-                        <div class="friend-item">
-                            <div class="friend-avatar">
-                                <span>JD</span>
-                                <div class="status-indicator status-online"></div>
-                            </div>
-                            <div class="friend-info">
-                                <div class="friend-name">Jan Demo</div>
-                                <div class="friend-status">Online</div>
-                            </div>
-                        </div>
+                        <!-- Członkowie serwera będą ładowani dynamicznie -->
                     </div>
                 </div>
             </div>
@@ -784,13 +1126,16 @@
                     <span>?</span>
                 </div>
                 <div class="profile-info">
-                    <div class="profile-name" id="userName">Ładowanie...</div>
+                    <div class="profile-name" id="userName">
+                        <span>Ładowanie...</span>
+                        <span class="friend-badge" id="userBadge"></span>
+                    </div>
                     <div class="profile-tag" id="userTag">#0000</div>
                 </div>
                 <div class="profile-controls">
                     <i class="fas fa-microphone"></i>
                     <i class="fas fa-headphones"></i>
-                    <i class="fas fa-cog" id="settingsBtn"></i>
+                    <i class="fas fa-cog" id="userSettingsBtn"></i>
                 </div>
             </div>
         </div>
@@ -799,34 +1144,24 @@
         <div class="chat-area">
             <div class="chat-header">
                 <i class="fas fa-hashtag chat-header-icon"></i>
-                <span class="chat-header-title">ogólny</span>
-                <span class="chat-header-topic">• Ogólny kanał rozmów</span>
+                <span class="chat-header-title" id="currentChannelName">ogólny</span>
+                <span class="chat-header-topic" id="channelTopic">• Wybierz kanał</span>
             </div>
             
             <div class="messages-container" id="messagesContainer">
-                <!-- Wiadomości będą ładowane dynamicznie z Firebase -->
-                <div class="message">
-                    <div class="message-avatar" style="background-color: #3ba55d;">
-                        <span>C</span>
-                    </div>
-                    <div class="message-content">
-                        <div class="message-header">
-                            <span class="message-author">Curl</span>
-                            <span class="message-time">Dzisiaj o 12:00</span>
-                        </div>
-                        <div class="message-text">
-                            Witaj na Curl! Możesz zacząć pisać wiadomości na tym kanale.
-                        </div>
-                    </div>
-                </div>
+                <!-- Wiadomości będą ładowane dynamicznie -->
             </div>
             
             <div class="message-input-container">
                 <div class="message-input-wrapper">
+                    <button class="emoji-btn" id="emojiBtn">😀</button>
+                    <div class="emoji-picker" id="emojiPicker">
+                        <!-- Emotki będą ładowane dynamicznie -->
+                    </div>
                     <textarea 
                         class="message-input" 
                         id="messageInput" 
-                        placeholder="Napisz wiadomość na #ogólny" 
+                        placeholder="Napisz wiadomość..." 
                         rows="1"
                         oninput="autoResize(this)"
                     ></textarea>
@@ -838,39 +1173,136 @@
         </div>
 
         <!-- Panel użytkowników online -->
-        <div class="users-sidebar">
+        <div class="users-sidebar" id="usersSidebar">
             <div class="users-title">UŻYTKOWNICY ONLINE — <span id="onlineUsersCount">0</span></div>
             <div id="onlineUsersList">
                 <!-- Użytkownicy online będą ładowani dynamicznie -->
-                <div class="user-item">
-                    <div class="user-avatar" style="background-color: #5865f2;">
-                        <span>C</span>
-                    </div>
-                    <div class="user-info">
-                        <div class="user-name">Curl</div>
-                        <div class="user-activity">System</div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 
+    <!-- Modal tworzenia serwera -->
+    <div class="modal-overlay" id="createServerModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Stwórz serwer</h3>
+                <p class="modal-subtitle">Stwórz nowy serwer dla siebie i znajomych</p>
+            </div>
+            <input type="text" class="modal-input" id="serverNameInput" placeholder="Nazwa serwera">
+            <textarea class="modal-input" id="serverDescriptionInput" placeholder="Opis serwera (opcjonalnie)" rows="3"></textarea>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" id="cancelCreateServer">Anuluj</button>
+                <button class="modal-btn primary" id="confirmCreateServer">Stwórz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal tworzenia kanału -->
+    <div class="modal-overlay" id="createChannelModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Stwórz kanał</h3>
+                <p class="modal-subtitle">Dodaj nowy kanał na serwerze</p>
+            </div>
+            <input type="text" class="modal-input" id="channelNameInput" placeholder="Nazwa kanału">
+            <textarea class="modal-input" id="channelTopicInput" placeholder="Temat kanału (opcjonalnie)" rows="3"></textarea>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" id="cancelCreateChannel">Anuluj</button>
+                <button class="modal-btn primary" id="confirmCreateChannel">Stwórz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal ustawień użytkownika -->
+    <div class="modal-overlay" id="userSettingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Ustawienia konta</h3>
+                <p class="modal-subtitle">Zarządzaj swoim profilem</p>
+            </div>
+            <div class="modal-input" id="userSettingsInfo">
+                <!-- Informacje o użytkowniku -->
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" id="cancelUserSettings">Zamknij</button>
+                <button class="modal-btn danger" id="logoutBtn">Wyloguj</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal ustawień serwera -->
+    <div class="modal-overlay" id="serverSettingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Ustawienia serwera</h3>
+                <p class="modal-subtitle" id="serverSettingsSubtitle">Zarządzaj serwerem</p>
+            </div>
+            <input type="text" class="modal-input" id="serverSettingsName" placeholder="Nazwa serwera">
+            <textarea class="modal-input" id="serverSettingsDescription" placeholder="Opis serwera" rows="3"></textarea>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" id="cancelServerSettings">Anuluj</button>
+                <button class="modal-btn primary" id="saveServerSettings">Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context menu -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" id="contextProfile">
+            <i class="fas fa-user"></i>
+            <span>Profil</span>
+        </div>
+        <div class="context-menu-item" id="contextMessage">
+            <i class="fas fa-envelope"></i>
+            <span>Wyślij wiadomość</span>
+        </div>
+        <div class="context-menu-item" id="contextMakeAdmin">
+            <i class="fas fa-crown"></i>
+            <span>Mianuj adminem</span>
+        </div>
+        <div class="context-menu-item" id="contextKick">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Wyrzuć</span>
+        </div>
+        <div class="context-menu-item delete" id="contextBan">
+            <i class="fas fa-ban"></i>
+            <span>Zbanuj</span>
+        </div>
+    </div>
+
     <script>
-        // Konfiguracja Firebase - TUTAJ WPISZ SWOJE DANE Z FIREBASE
+        // Konfiguracja Firebase - WPISZ SWOJĄ KONFIGURACJĘ
         const firebaseConfig = {
-  apiKey: "AIzaSyC7hMKirNQ9ltCU7AUWyJtf8fG9Y_EfPgQ",
-  authDomain: "curl-1225d.firebaseapp.com",
-  projectId: "curl-1225d",
-  storageBucket: "curl-1225d.firebasestorage.app",
-  messagingSenderId: "149369739586",
-  appId: "1:149369739586:web:c3814530dc33b1e219d0db",
-  measurementId: "G-3YQWJM1Y94"
-};
+            apiKey: "AIzaSyC7hMKirNQ9ltCU7AUWyJtf8fG9Y_EfPgQ",
+            authDomain: "curl-1225d.firebaseapp.com",
+            projectId: "curl-1225d",
+            storageBucket: "curl-1225d.firebasestorage.app",
+            messagingSenderId: "149369739586",
+            appId: "1:149369739586:web:c3814530dc33b1e219d0db",
+            measurementId: "G-3YQWJM1Y94"
+        };
 
         // Inicjalizacja Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // Zmienne globalne
+        let currentUser = null;
+        let currentServer = 'main'; // ID aktualnego serwera
+        let currentChannel = null; // ID aktualnego kanału
+        let unsubscribeMessages = null;
+        let unsubscribeUsers = null;
+        let unsubscribeServers = null;
+        let unsubscribeChannels = null;
+        
+        // Dane adminów - symulacja pliku admins.txt
+        const adminData = {
+            owners: ["1", "2", "3"], // ID właścicieli aplikacji
+            admins: ["4", "5"], // ID adminów aplikacji
+            mods: ["6", "7", "8"] // ID moderatorów aplikacji
+        };
 
         // Referencje do elementów DOM
         const loginOverlay = document.getElementById('loginOverlay');
@@ -889,26 +1321,42 @@
         const userAvatar = document.getElementById('userAvatar');
         const userName = document.getElementById('userName');
         const userTag = document.getElementById('userTag');
+        const userBadge = document.getElementById('userBadge');
         const notificationArea = document.getElementById('notificationArea');
-        const settingsBtn = document.getElementById('settingsBtn');
+        const serverHeader = document.getElementById('serverHeader');
+        const serverDropdown = document.getElementById('serverDropdown');
+        const currentServerName = document.getElementById('currentServerName');
+        const currentChannelName = document.getElementById('currentChannelName');
+        const channelTopic = document.getElementById('channelTopic');
+        const channelList = document.getElementById('channelList');
+        const addServerBtn = document.getElementById('addServerBtn');
+        const addChannelBtn = document.getElementById('addChannelBtn');
+        const createServerModal = document.getElementById('createServerModal');
+        const createChannelModal = document.getElementById('createChannelModal');
+        const userSettingsModal = document.getElementById('userSettingsModal');
+        const serverSettingsModal = document.getElementById('serverSettingsModal');
+        const contextMenu = document.getElementById('contextMenu');
+        const emojiBtn = document.getElementById('emojiBtn');
+        const emojiPicker = document.getElementById('emojiPicker');
+        const userSettingsBtn = document.getElementById('userSettingsBtn');
+        const serverSettingsBtn = document.getElementById('serverSettingsBtn');
+        const deleteServerBtn = document.getElementById('deleteServerBtn');
+        const createChannelBtn = document.getElementById('createChannelBtn');
 
-        // Zmienne globalne
-        let currentUser = null;
-        let unsubscribeMessages = null;
-        let unsubscribeUsers = null;
+        // Emotki
+        const emojis = ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
 
         // Funkcja do wyświetlania powiadomień
         function showNotification(message, type = 'info') {
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
             notification.innerHTML = `
-                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
                 <span>${message}</span>
             `;
             
             notificationArea.appendChild(notification);
             
-            // Usuń powiadomienie po 5 sekundach
             setTimeout(() => {
                 notification.style.animation = 'slideIn 0.3s ease-out reverse';
                 setTimeout(() => {
@@ -917,13 +1365,45 @@
             }, 5000);
         }
 
-        // Funkcja do automatycznego zwiększania wysokości textarea
+        // Funkcja automatycznego resize textarea
         function autoResize(textarea) {
             textarea.style.height = 'auto';
             textarea.style.height = (textarea.scrollHeight) + 'px';
-            
-            // Włącz/wyłącz przycisk wysyłania
             sendMessageBtn.disabled = textarea.value.trim() === '';
+        }
+
+        // Funkcja sprawdzania uprawnień użytkownika
+        function getUserRole(userId) {
+            if (adminData.owners.includes(userId)) return 'owner';
+            if (adminData.admins.includes(userId)) return 'admin';
+            if (adminData.mods.includes(userId)) return 'mod';
+            return 'user';
+        }
+
+        // Funkcja zwracająca badge dla roli
+        function getRoleBadge(role) {
+            switch(role) {
+                case 'owner': return '<span class="friend-badge badge-owner">👑 WŁAŚCICIEL</span>';
+                case 'admin': return '<span class="friend-badge badge-admin">ADMIN</span>';
+                case 'mod': return '<span class="friend-badge badge-mod">MOD</span>';
+                default: return '';
+            }
+        }
+
+        // Funkcja zwracająca kolor dla roli
+        function getRoleColor(role) {
+            switch(role) {
+                case 'owner': return '#faa81a';
+                case 'admin': return '#ed4245';
+                case 'mod': return '#5865f2';
+                default: return '#5865f2';
+            }
+        }
+
+        // Funkcja sprawdzająca czy użytkownik może usuwać serwery
+        function canDeleteServer(userId) {
+            const role = getUserRole(userId);
+            return role === 'owner' || role === 'admin';
         }
 
         // Funkcja do logowania przez Google
@@ -932,38 +1412,33 @@
             auth.signInWithPopup(provider)
                 .then((result) => {
                     showNotification('Zalogowano przez Google!', 'success');
-                    // Użytkownik jest automatycznie zapisywany w onAuthStateChanged
                 })
                 .catch((error) => {
-                    console.error('Błąd logowania przez Google:', error);
+                    console.error('Błąd logowania:', error);
                     showNotification(`Błąd logowania: ${error.message}`, 'error');
                 });
         }
 
-        // Symulacja logowania przez Discord (Firebase nie ma natywnego providera Discord)
+        // Funkcja do logowania przez Discord (symulacja)
         function loginWithDiscord() {
-            showNotification('Logowanie przez Discord jest w trakcie implementacji. Użyj Google dla demonstracji.', 'info');
-            
-            // W wersji demonstracyjnej używamy Google
-            // W prawdziwej aplikacji trzeba by użyć OAuth2 Discord
-            setTimeout(() => {
-                loginWithGoogle();
-            }, 1000);
+            showNotification('Logowanie przez Discord - użyj Google', 'warning');
+            loginWithGoogle();
         }
 
         // Funkcja do wysyłania wiadomości
         function sendMessage() {
             const messageText = messageInput.value.trim();
-            if (!messageText || !currentUser) return;
+            if (!messageText || !currentUser || !currentChannel) return;
             
             const messageData = {
                 text: messageText,
                 userId: currentUser.uid,
                 userName: currentUser.displayName || 'Anonim',
                 userAvatar: currentUser.photoURL || '',
-                userInitials: getInitials(currentUser.displayName || 'A'),
+                userRole: getUserRole(currentUser.uid),
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                channelId: 'general' // Domyślny kanał
+                serverId: currentServer,
+                channelId: currentChannel
             };
             
             db.collection('messages').add(messageData)
@@ -978,134 +1453,261 @@
                 });
         }
 
-        // Funkcja do pobierania inicjałów z nazwy
-        function getInitials(name) {
-            return name.split(' ')
-                .map(part => part.charAt(0))
-                .join('')
-                .toUpperCase()
-                .substring(0, 2);
-        }
-
-        // Funkcja do ładowania wiadomości w czasie rzeczywistym
-        function loadMessages() {
-            // Najpierw odsubskrybuj poprzedni listener jeśli istnieje
+        // Funkcja do ładowania wiadomości
+        function loadMessages(channelId) {
             if (unsubscribeMessages) unsubscribeMessages();
             
+            currentChannel = channelId;
             unsubscribeMessages = db.collection('messages')
-                .where('channelId', '==', 'general')
+                .where('serverId', '==', currentServer)
+                .where('channelId', '==', channelId)
                 .orderBy('timestamp', 'asc')
                 .limit(100)
                 .onSnapshot((snapshot) => {
                     messagesContainer.innerHTML = '';
                     
-                    // Dodaj domyślną wiadomość systemową
-                    const welcomeMessage = document.createElement('div');
-                    welcomeMessage.className = 'message';
-                    welcomeMessage.innerHTML = `
-                        <div class="message-avatar" style="background-color: #3ba55d;">
-                            <span>C</span>
-                        </div>
-                        <div class="message-content">
-                            <div class="message-header">
-                                <span class="message-author">Curl</span>
-                                <span class="message-time">Dzisiaj o ${new Date().toLocaleTimeString('pl-PL', {hour: '2-digit', minute:'2-digit'})}</span>
-                            </div>
-                            <div class="message-text">
-                                Witaj na Curl! To jest kanał ogólny. Możesz zacząć pisać wiadomości.
-                            </div>
-                        </div>
-                    `;
-                    messagesContainer.appendChild(welcomeMessage);
-                    
-                    // Dodaj wiadomości z Firestore
-                    snapshot.forEach((doc) => {
-                        const message = doc.data();
-                        const messageElement = document.createElement('div');
-                        messageElement.className = 'message';
-                        
-                        // Formatowanie czasu
-                        let timeString = 'Przed chwilą';
-                        if (message.timestamp) {
-                            const date = message.timestamp.toDate();
-                            const now = new Date();
-                            const diffMs = now - date;
-                            const diffMins = Math.floor(diffMs / 60000);
-                            
-                            if (diffMins < 1) {
-                                timeString = 'Przed chwilą';
-                            } else if (diffMins < 60) {
-                                timeString = `${diffMins} min temu`;
-                            } else {
-                                timeString = date.toLocaleTimeString('pl-PL', {hour: '2-digit', minute:'2-digit'});
-                            }
-                        }
-                        
-                        // Wybór koloru awatara na podstawie nazwy użytkownika
-                        const colors = ['#5865f2', '#3ba55d', '#ed4245', '#faa81a', '#eb459e', '#ff73fa'];
-                        const colorIndex = message.userName.length % colors.length;
-                        const avatarColor = colors[colorIndex];
-                        
-                        messageElement.innerHTML = `
-                            <div class="message-avatar" style="background-color: ${avatarColor};">
-                                <span>${message.userInitials || getInitials(message.userName)}</span>
+                    if (snapshot.empty) {
+                        const welcomeMessage = document.createElement('div');
+                        welcomeMessage.className = 'message';
+                        welcomeMessage.innerHTML = `
+                            <div class="message-avatar" style="background-color: #3ba55d;">
+                                <span>C</span>
                             </div>
                             <div class="message-content">
                                 <div class="message-header">
-                                    <span class="message-author">${message.userName}</span>
-                                    <span class="message-time">${timeString}</span>
+                                    <span class="message-author">Curl</span>
+                                    <span class="message-time">Dzisiaj</span>
                                 </div>
-                                <div class="message-text">${message.text}</div>
+                                <div class="message-text">
+                                    Witaj na kanale! Bądź pierwszy który napisze wiadomość.
+                                </div>
                             </div>
                         `;
-                        messagesContainer.appendChild(messageElement);
+                        messagesContainer.appendChild(welcomeMessage);
+                    }
+                    
+                    snapshot.forEach((doc) => {
+                        const message = doc.data();
+                        addMessageToDOM(message);
                     });
                     
-                    // Przewiń na dół
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
                 }, (error) => {
                     console.error('Błąd ładowania wiadomości:', error);
                 });
         }
 
-        // Funkcja do śledzenia aktywnych użytkowników
-        function trackOnlineUsers() {
-            // Najpierw odsubskrybuj poprzedni listener jeśli istnieje
+        // Funkcja dodająca wiadomość do DOM
+        function addMessageToDOM(message) {
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message';
+            
+            // Formatowanie czasu
+            let timeString = 'Przed chwilą';
+            if (message.timestamp) {
+                const date = message.timestamp.toDate();
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                
+                if (diffMins < 1) {
+                    timeString = 'Przed chwilą';
+                } else if (diffMins < 60) {
+                    timeString = `${diffMins} min temu`;
+                } else {
+                    timeString = date.toLocaleTimeString('pl-PL', {hour: '2-digit', minute:'2-digit'});
+                }
+            }
+            
+            // Kolor awatara
+            const avatarColor = getRoleColor(message.userRole || 'user');
+            
+            messageElement.innerHTML = `
+                <div class="message-avatar" style="background-color: ${avatarColor};" data-user-id="${message.userId}">
+                    <span>${message.userName.charAt(0).toUpperCase()}</span>
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-author">
+                            ${message.userName}
+                            ${getRoleBadge(message.userRole || 'user')}
+                        </span>
+                        <span class="message-time">${timeString}</span>
+                    </div>
+                    <div class="message-text">${message.text}</div>
+                </div>
+                <div class="message-actions">
+                    ${canDeleteServer(currentUser.uid) ? '<button class="message-action-btn delete-message" data-message-id="${doc.id}">Usuń</button>' : ''}
+                </div>
+            `;
+            messagesContainer.appendChild(messageElement);
+        }
+
+        // Funkcja do ładowania serwerów
+        function loadServers() {
+            if (unsubscribeServers) unsubscribeServers();
+            
+            unsubscribeServers = db.collection('servers')
+                .onSnapshot((snapshot) => {
+                    serversSidebar.innerHTML = '';
+                    
+                    // Główny serwer
+                    const mainServer = document.createElement('div');
+                    mainServer.className = 'server-icon curlio active';
+                    mainServer.title = 'Curlio';
+                    mainServer.dataset.serverId = 'main';
+                    mainServer.innerHTML = 'C<div class="server-indicator"></div>';
+                    mainServer.onclick = () => switchServer('main');
+                    serversSidebar.appendChild(mainServer);
+                    
+                    const divider = document.createElement('div');
+                    divider.className = 'divider';
+                    serversSidebar.appendChild(divider);
+                    
+                    // Serwery z bazy
+                    snapshot.forEach((doc) => {
+                        const server = doc.data();
+                        const serverElement = document.createElement('div');
+                        serverElement.className = 'server-icon';
+                        serverElement.title = server.name;
+                        serverElement.dataset.serverId = doc.id;
+                        serverElement.innerHTML = `${server.name.charAt(0).toUpperCase()}<div class="server-indicator"></div>`;
+                        serverElement.onclick = () => switchServer(doc.id, server);
+                        serversSidebar.appendChild(serverElement);
+                    });
+                    
+                    // Przycisk dodawania serwera
+                    const addServer = document.createElement('div');
+                    addServer.className = 'server-icon add-server';
+                    addServer.title = 'Dodaj serwer';
+                    addServer.id = 'addServerBtn';
+                    addServer.innerHTML = '<i class="fas fa-plus"></i>';
+                    addServer.onclick = () => createServerModal.classList.remove('hidden');
+                    serversSidebar.appendChild(addServer);
+                }, (error) => {
+                    console.error('Błąd ładowania serwerów:', error);
+                });
+        }
+
+        // Funkcja do przełączania serwera
+        function switchServer(serverId, serverData = null) {
+            currentServer = serverId;
+            
+            // Aktualizuj aktywne serwery
+            document.querySelectorAll('.server-icon').forEach(icon => {
+                icon.classList.remove('active');
+                icon.querySelector('.server-indicator').style.height = '0';
+            });
+            
+            const activeServer = document.querySelector(`[data-server-id="${serverId}"]`);
+            if (activeServer) {
+                activeServer.classList.add('active');
+                activeServer.querySelector('.server-indicator').style.height = '20px';
+            }
+            
+            // Ustaw nazwę serwera
+            if (serverId === 'main') {
+                currentServerName.textContent = 'Curlio';
+                channelTopic.textContent = '• Oficjalny serwer Curl';
+            } else if (serverData) {
+                currentServerName.textContent = serverData.name;
+                channelTopic.textContent = serverData.description ? `• ${serverData.description}` : '';
+            }
+            
+            // Załaduj kanały dla serwera
+            loadChannels(serverId);
+            
+            // Załaduj członków serwera
+            loadServerMembers(serverId);
+        }
+
+        // Funkcja do ładowania kanałów
+        function loadChannels(serverId) {
+            if (unsubscribeChannels) unsubscribeChannels();
+            
+            channelList.innerHTML = '';
+            
+            unsubscribeChannels = db.collection('channels')
+                .where('serverId', '==', serverId)
+                .orderBy('createdAt', 'asc')
+                .onSnapshot((snapshot) => {
+                    channelList.innerHTML = '';
+                    
+                    // Domyślny kanał dla głównego serwera
+                    if (serverId === 'main' && snapshot.empty) {
+                        const defaultChannel = document.createElement('div');
+                        defaultChannel.className = 'channel-item active';
+                        defaultChannel.dataset.channelId = 'general';
+                        defaultChannel.innerHTML = `
+                            <i class="fas fa-hashtag channel-icon"></i>
+                            <span>ogólny</span>
+                        `;
+                        defaultChannel.onclick = () => {
+                            document.querySelectorAll('.channel-item').forEach(item => {
+                                item.classList.remove('active');
+                            });
+                            defaultChannel.classList.add('active');
+                            currentChannelName.textContent = 'ogólny';
+                            loadMessages('general');
+                        };
+                        channelList.appendChild(defaultChannel);
+                        
+                        // Załaduj wiadomości dla domyślnego kanału
+                        loadMessages('general');
+                        currentChannelName.textContent = 'ogólny';
+                    }
+                    
+                    snapshot.forEach((doc) => {
+                        const channel = doc.data();
+                        const channelElement = document.createElement('div');
+                        channelElement.className = 'channel-item';
+                        if (snapshot.docs[0].id === doc.id) {
+                            channelElement.classList.add('active');
+                            loadMessages(doc.id);
+                            currentChannelName.textContent = channel.name;
+                        }
+                        channelElement.dataset.channelId = doc.id;
+                        channelElement.innerHTML = `
+                            <i class="fas fa-hashtag channel-icon"></i>
+                            <span>${channel.name}</span>
+                            <div class="channel-settings">
+                                <i class="fas fa-cog" style="font-size: 12px;"></i>
+                            </div>
+                        `;
+                        channelElement.onclick = () => {
+                            document.querySelectorAll('.channel-item').forEach(item => {
+                                item.classList.remove('active');
+                            });
+                            channelElement.classList.add('active');
+                            currentChannelName.textContent = channel.name;
+                            loadMessages(doc.id);
+                        };
+                        channelList.appendChild(channelElement);
+                    });
+                }, (error) => {
+                    console.error('Błąd ładowania kanałów:', error);
+                });
+        }
+
+        // Funkcja do ładowania członków serwera
+        function loadServerMembers(serverId) {
+            // Śledzenie aktywnych użytkowników
             if (unsubscribeUsers) unsubscribeUsers();
             
-            const userStatusRef = db.collection('status').doc(currentUser.uid);
-            const isOfflineForFirestore = {
-                state: 'offline',
-                lastChanged: firebase.firestore.FieldValue.serverTimestamp(),
-                userId: currentUser.uid,
-                userName: currentUser.displayName || 'Użytkownik',
-                userAvatar: currentUser.photoURL || ''
-            };
-            
-            const isOnlineForFirestore = {
-                state: 'online',
-                lastChanged: firebase.firestore.FieldValue.serverTimestamp(),
-                userId: currentUser.uid,
-                userName: currentUser.displayName || 'Użytkownik',
-                userAvatar: currentUser.photoURL || ''
-            };
-            
-            // Ustawienie statusu online
-            db.collection('status').doc(currentUser.uid).set(isOnlineForFirestore);
-            
-            // Nasłuchiwanie zmian w statusach użytkowników
             unsubscribeUsers = db.collection('status')
                 .where('state', '==', 'online')
                 .onSnapshot((snapshot) => {
+                    friendsList.innerHTML = '';
                     onlineUsersList.innerHTML = '';
                     let onlineCountNum = 0;
                     
-                    // Dodaj systemowego użytkownika Curl
+                    // Dodaj systemowego użytkownika
                     const systemUser = document.createElement('div');
                     systemUser.className = 'user-item';
                     systemUser.innerHTML = `
                         <div class="user-avatar" style="background-color: #5865f2;">
                             <span>C</span>
+                            <div class="status-indicator status-online"></div>
                         </div>
                         <div class="user-info">
                             <div class="user-name">Curl</div>
@@ -1118,24 +1720,48 @@
                     // Dodaj zalogowanych użytkowników
                     snapshot.forEach((doc) => {
                         const userData = doc.data();
-                        if (userData.userId === currentUser.uid) return; // Pomijamy siebie
-                        
                         onlineCountNum++;
                         
+                        // Dodaj do listy znajomych
+                        const friendItem = document.createElement('div');
+                        friendItem.className = 'friend-item';
+                        friendItem.dataset.userId = userData.userId;
+                        
+                        const userRole = getUserRole(userData.userId);
+                        const avatarColor = getRoleColor(userRole);
+                        
+                        friendItem.innerHTML = `
+                            <div class="friend-avatar" style="background-color: ${avatarColor};">
+                                <span>${userData.userName.charAt(0).toUpperCase()}</span>
+                                <div class="status-indicator status-online"></div>
+                            </div>
+                            <div class="friend-info">
+                                <div class="friend-name">
+                                    ${userData.userName}
+                                    ${getRoleBadge(userRole)}
+                                </div>
+                                <div class="friend-status">Online</div>
+                            </div>
+                            <div class="friend-actions">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                        `;
+                        friendsList.appendChild(friendItem);
+                        
+                        // Dodaj do listy online
                         const userItem = document.createElement('div');
                         userItem.className = 'user-item';
-                        
-                        const colors = ['#5865f2', '#3ba55d', '#ed4245', '#faa81a', '#eb459e'];
-                        const colorIndex = userData.userName.length % colors.length;
-                        const avatarColor = colors[colorIndex];
-                        
+                        userItem.dataset.userId = userData.userId;
                         userItem.innerHTML = `
                             <div class="user-avatar" style="background-color: ${avatarColor};">
-                                <span>${getInitials(userData.userName)}</span>
+                                <span>${userData.userName.charAt(0).toUpperCase()}</span>
                                 <div class="status-indicator status-online"></div>
                             </div>
                             <div class="user-info">
-                                <div class="user-name">${userData.userName}</div>
+                                <div class="user-name">
+                                    ${userData.userName}
+                                    ${getRoleBadge(userRole)}
+                                </div>
                                 <div class="user-activity">Na Curl</div>
                             </div>
                         `;
@@ -1144,52 +1770,20 @@
                     
                     onlineUsersCount.textContent = onlineCountNum;
                     onlineCount.textContent = onlineCountNum;
-                    
-                    // Zaktualizuj listę znajomych
-                    updateFriendsList(snapshot);
                 });
-            
-            // Ustawienie statusu offline po zamknięciu
-            window.addEventListener('beforeunload', () => {
-                userStatusRef.set(isOfflineForFirestore);
-            });
-        }
-
-        // Funkcja do aktualizacji listy znajomych
-        function updateFriendsList(usersSnapshot) {
-            friendsList.innerHTML = '';
-            
-            usersSnapshot.forEach((doc) => {
-                const userData = doc.data();
-                
-                const friendItem = document.createElement('div');
-                friendItem.className = 'friend-item';
-                
-                const colors = ['#5865f2', '#3ba55d', '#ed4245', '#faa81a', '#eb459e'];
-                const colorIndex = userData.userName.length % colors.length;
-                const avatarColor = colors[colorIndex];
-                
-                friendItem.innerHTML = `
-                    <div class="friend-avatar" style="background-color: ${avatarColor};">
-                        <span>${getInitials(userData.userName)}</span>
-                        <div class="status-indicator ${userData.state === 'online' ? 'status-online' : 'status-offline'}"></div>
-                    </div>
-                    <div class="friend-info">
-                        <div class="friend-name">${userData.userName}</div>
-                        <div class="friend-status">${userData.state === 'online' ? 'Online' : 'Offline'}</div>
-                    </div>
-                `;
-                friendsList.appendChild(friendItem);
-            });
         }
 
         // Funkcja do aktualizacji profilu użytkownika
         function updateUserProfile(user) {
             const displayName = user.displayName || 'Użytkownik';
             const photoURL = user.photoURL;
-            const initials = getInitials(displayName);
+            const initials = displayName.charAt(0).toUpperCase();
+            const userRole = getUserRole(user.uid);
             
-            userName.textContent = displayName;
+            userName.innerHTML = `
+                <span>${displayName}</span>
+                ${getRoleBadge(userRole)}
+            `;
             userTag.textContent = `#${user.uid.substring(0, 4)}`;
             
             if (photoURL) {
@@ -1199,73 +1793,134 @@
             } else {
                 userAvatar.style.backgroundImage = '';
                 userAvatar.innerHTML = `<span>${initials}</span>`;
-                
-                // Wybór koloru awatara
-                const colors = ['#5865f2', '#3ba55d', '#ed4245', '#faa81a', '#eb459e'];
-                const colorIndex = displayName.length % colors.length;
-                userAvatar.style.backgroundColor = colors[colorIndex];
+                userAvatar.style.backgroundColor = getRoleColor(userRole);
             }
         }
 
-        // Obsługa stanu uwierzytelnienia
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                // Użytkownik zalogowany
-                currentUser = user;
-                
-                // Zaktualizuj profil
-                updateUserProfile(user);
-                
-                // Zapisz użytkownika w Firestore (jeśli nie istnieje)
-                db.collection('users').doc(user.uid).set({
-                    uid: user.uid,
-                    displayName: user.displayName || 'Użytkownik',
-                    email: user.email,
-                    photoURL: user.photoURL || '',
-                    lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-                
-                // Przełącz widok
-                loginOverlay.classList.add('hidden');
-                serversSidebar.classList.remove('hidden');
-                mainContainer.classList.remove('hidden');
-                
-                // Załaduj wiadomości
-                loadMessages();
-                
-                // Śledź aktywnych użytkowników
-                trackOnlineUsers();
-                
-                showNotification(`Witaj, ${user.displayName || 'Użytkowniku'}!`, 'success');
-            } else {
-                // Użytkownik wylogowany
-                currentUser = null;
-                
-                // Odsubskrybuj listenery
-                if (unsubscribeMessages) unsubscribeMessages();
-                if (unsubscribeUsers) unsubscribeUsers();
-                
-                // Przełącz widok
-                loginOverlay.classList.remove('hidden');
-                serversSidebar.classList.add('hidden');
-                mainContainer.classList.add('hidden');
-                
-                // Wyczyść pola
-                messageInput.value = '';
-                sendMessageBtn.disabled = true;
+        // Funkcja do tworzenia serwera
+        function createServer() {
+            const name = document.getElementById('serverNameInput').value.trim();
+            const description = document.getElementById('serverDescriptionInput').value.trim();
+            
+            if (!name) {
+                showNotification('Wpisz nazwę serwera', 'warning');
+                return;
             }
-        });
+            
+            const serverData = {
+                name: name,
+                description: description,
+                ownerId: currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                members: [currentUser.uid]
+            };
+            
+            db.collection('servers').add(serverData)
+                .then((docRef) => {
+                    // Stwórz domyślny kanał
+                    db.collection('channels').add({
+                        name: 'ogólny',
+                        serverId: docRef.id,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    createServerModal.classList.add('hidden');
+                    document.getElementById('serverNameInput').value = '';
+                    document.getElementById('serverDescriptionInput').value = '';
+                    showNotification('Serwer został stworzony!', 'success');
+                })
+                .catch((error) => {
+                    console.error('Błąd tworzenia serwera:', error);
+                    showNotification('Nie udało się stworzyć serwera', 'error');
+                });
+        }
 
-        // Obsługa wylogowania
+        // Funkcja do tworzenia kanału
+        function createChannel() {
+            const name = document.getElementById('channelNameInput').value.trim();
+            const topic = document.getElementById('channelTopicInput').value.trim();
+            
+            if (!name) {
+                showNotification('Wpisz nazwę kanału', 'warning');
+                return;
+            }
+            
+            const channelData = {
+                name: name,
+                topic: topic,
+                serverId: currentServer,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdBy: currentUser.uid
+            };
+            
+            db.collection('channels').add(channelData)
+                .then(() => {
+                    createChannelModal.classList.add('hidden');
+                    document.getElementById('channelNameInput').value = '';
+                    document.getElementById('channelTopicInput').value = '';
+                    showNotification('Kanał został stworzony!', 'success');
+                })
+                .catch((error) => {
+                    console.error('Błąd tworzenia kanału:', error);
+                    showNotification('Nie udało się stworzyć kanału', 'error');
+                });
+        }
+
+        // Funkcja do usuwania serwera
+        function deleteServer() {
+            if (currentServer === 'main') {
+                showNotification('Nie można usunąć głównego serwera', 'error');
+                return;
+            }
+            
+            if (!canDeleteServer(currentUser.uid)) {
+                showNotification('Nie masz uprawnień do usuwania serwerów', 'error');
+                return;
+            }
+            
+            if (confirm('Czy na pewno chcesz usunąć ten serwer? Ta operacja jest nieodwracalna.')) {
+                db.collection('servers').doc(currentServer).delete()
+                    .then(() => {
+                        // Usuń wszystkie kanały tego serwera
+                        db.collection('channels').where('serverId', '==', currentServer).get()
+                            .then((snapshot) => {
+                                const batch = db.batch();
+                                snapshot.forEach((doc) => {
+                                    batch.delete(doc.ref);
+                                });
+                                return batch.commit();
+                            });
+                        
+                        // Usuń wszystkie wiadomości z tego serwera
+                        db.collection('messages').where('serverId', '==', currentServer).get()
+                            .then((snapshot) => {
+                                const batch = db.batch();
+                                snapshot.forEach((doc) => {
+                                    batch.delete(doc.ref);
+                                });
+                                return batch.commit();
+                            });
+                        
+                        // Przełącz na główny serwer
+                        switchServer('main');
+                        showNotification('Serwer został usunięty', 'success');
+                    })
+                    .catch((error) => {
+                        console.error('Błąd usuwania serwera:', error);
+                        showNotification('Nie udało się usunąć serwera', 'error');
+                    });
+            }
+        }
+
+        // Funkcja do wylogowania
         function logout() {
-            // Ustaw status offline przed wylogowaniem
+            // Ustaw status offline
             if (currentUser) {
                 db.collection('status').doc(currentUser.uid).set({
                     state: 'offline',
                     lastChanged: firebase.firestore.FieldValue.serverTimestamp(),
                     userId: currentUser.uid,
-                    userName: currentUser.displayName || 'Użytkownik',
-                    userAvatar: currentUser.photoURL || ''
+                    userName: currentUser.displayName || 'Użytkownik'
                 });
             }
             
@@ -1278,7 +1933,91 @@
                 });
         }
 
-        // Obsługa zdarzeń
+        // Obsługa stanu uwierzytelnienia
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                updateUserProfile(user);
+                
+                // Zapisz użytkownika w Firestore
+                db.collection('users').doc(user.uid).set({
+                    uid: user.uid,
+                    displayName: user.displayName || 'Użytkownik',
+                    email: user.email,
+                    photoURL: user.photoURL || '',
+                    role: getUserRole(user.uid),
+                    lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                
+                // Ustaw status online
+                db.collection('status').doc(user.uid).set({
+                    state: 'online',
+                    lastChanged: firebase.firestore.FieldValue.serverTimestamp(),
+                    userId: user.uid,
+                    userName: user.displayName || 'Użytkownik',
+                    userAvatar: user.photoURL || ''
+                });
+                
+                // Przełącz widok
+                loginOverlay.classList.add('hidden');
+                serversSidebar.classList.remove('hidden');
+                mainContainer.classList.remove('hidden');
+                
+                // Załaduj dane
+                loadServers();
+                switchServer('main');
+                
+                // Dodaj adminów do bazy jeśli nie istnieją
+                const addAdminIfNotExists = (adminId, name) => {
+                    db.collection('users').doc(adminId).get().then(doc => {
+                        if (!doc.exists) {
+                            db.collection('users').doc(adminId).set({
+                                uid: adminId,
+                                displayName: name,
+                                role: getUserRole(adminId),
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
+                    });
+                };
+                
+                // Dodaj przykładowych adminów
+                addAdminIfNotExists('1', 'Właściciel 👑');
+                addAdminIfNotExists('2', 'Admin 1');
+                addAdminIfNotExists('3', 'Admin 2');
+                addAdminIfNotExists('4', 'Moderator 1');
+                addAdminIfNotExists('5', 'Moderator 2');
+                
+                showNotification(`Witaj, ${user.displayName || 'Użytkowniku'}!`, 'success');
+            } else {
+                currentUser = null;
+                if (unsubscribeMessages) unsubscribeMessages();
+                if (unsubscribeUsers) unsubscribeUsers();
+                if (unsubscribeServers) unsubscribeServers();
+                if (unsubscribeChannels) unsubscribeChannels();
+                
+                loginOverlay.classList.remove('hidden');
+                serversSidebar.classList.add('hidden');
+                mainContainer.classList.add('hidden');
+                messageInput.value = '';
+                sendMessageBtn.disabled = true;
+            }
+        });
+
+        // Inicjalizacja emoji pickera
+        emojis.forEach(emoji => {
+            const emojiItem = document.createElement('div');
+            emojiItem.className = 'emoji-item';
+            emojiItem.textContent = emoji;
+            emojiItem.onclick = () => {
+                messageInput.value += emoji;
+                messageInput.focus();
+                autoResize(messageInput);
+            };
+            emojiPicker.appendChild(emojiItem);
+        });
+
+        // Event Listeners
         googleLoginBtn.addEventListener('click', loginWithGoogle);
         discordLoginBtn.addEventListener('click', loginWithDiscord);
         
@@ -1291,27 +2030,189 @@
             }
         });
 
-        // Obsługa przycisku ustawień (wylogowanie)
-        settingsBtn.addEventListener('click', () => {
-            if (confirm('Czy na pewno chcesz się wylogować?')) {
-                logout();
+        emojiBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            emojiPicker.style.display = emojiPicker.style.display === 'grid' ? 'none' : 'grid';
+        });
+
+        document.addEventListener('click', () => {
+            emojiPicker.style.display = 'none';
+            serverDropdown.style.display = 'none';
+            contextMenu.style.display = 'none';
+        });
+
+        serverHeader.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const rect = serverHeader.getBoundingClientRect();
+            serverDropdown.style.left = '240px';
+            serverDropdown.style.top = `${rect.bottom}px`;
+            serverDropdown.style.display = 'block';
+        });
+
+        userSettingsBtn.addEventListener('click', () => {
+            userSettingsModal.classList.remove('hidden');
+            document.getElementById('userSettingsInfo').innerHTML = `
+                <strong>ID użytkownika:</strong> ${currentUser.uid}<br>
+                <strong>Email:</strong> ${currentUser.email || 'Brak'}<br>
+                <strong>Rola:</strong> ${getUserRole(currentUser.uid).toUpperCase()}<br>
+                <strong>Data utworzenia:</strong> ${new Date().toLocaleDateString('pl-PL')}
+            `;
+        });
+
+        serverSettingsBtn.addEventListener('click', () => {
+            if (currentServer === 'main') {
+                showNotification('Nie można edytować głównego serwera', 'warning');
+                return;
+            }
+            
+            db.collection('servers').doc(currentServer).get().then(doc => {
+                if (doc.exists) {
+                    const server = doc.data();
+                    document.getElementById('serverSettingsName').value = server.name;
+                    document.getElementById('serverSettingsDescription').value = server.description || '';
+                    document.getElementById('serverSettingsSubtitle').textContent = `ID: ${currentServer}`;
+                    serverSettingsModal.classList.remove('hidden');
+                }
+            });
+        });
+
+        deleteServerBtn.addEventListener('click', deleteServer);
+        
+        createChannelBtn.addEventListener('click', () => {
+            createChannelModal.classList.remove('hidden');
+        });
+
+        addServerBtn.addEventListener('click', () => {
+            createServerModal.classList.remove('hidden');
+        });
+
+        addChannelBtn.addEventListener('click', () => {
+            createChannelModal.classList.remove('hidden');
+        });
+
+        // Modal buttons
+        document.getElementById('cancelCreateServer').addEventListener('click', () => {
+            createServerModal.classList.add('hidden');
+        });
+
+        document.getElementById('confirmCreateServer').addEventListener('click', createServer);
+
+        document.getElementById('cancelCreateChannel').addEventListener('click', () => {
+            createChannelModal.classList.add('hidden');
+        });
+
+        document.getElementById('confirmCreateChannel').addEventListener('click', createChannel);
+
+        document.getElementById('cancelUserSettings').addEventListener('click', () => {
+            userSettingsModal.classList.add('hidden');
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            userSettingsModal.classList.add('hidden');
+            logout();
+        });
+
+        document.getElementById('cancelServerSettings').addEventListener('click', () => {
+            serverSettingsModal.classList.add('hidden');
+        });
+
+        document.getElementById('saveServerSettings').addEventListener('click', () => {
+            const name = document.getElementById('serverSettingsName').value.trim();
+            const description = document.getElementById('serverSettingsDescription').value.trim();
+            
+            if (!name) {
+                showNotification('Nazwa serwera nie może być pusta', 'warning');
+                return;
+            }
+            
+            db.collection('servers').doc(currentServer).update({
+                name: name,
+                description: description
+            }).then(() => {
+                serverSettingsModal.classList.add('hidden');
+                currentServerName.textContent = name;
+                showNotification('Ustawienia serwera zapisane', 'success');
+            }).catch(error => {
+                console.error('Błąd aktualizacji serwera:', error);
+                showNotification('Nie udało się zapisać ustawień', 'error');
+            });
+        });
+
+        // Context menu
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            
+            const userItem = e.target.closest('[data-user-id]');
+            if (userItem) {
+                const userId = userItem.dataset.userId;
+                const currentUserRole = getUserRole(currentUser.uid);
+                const targetUserRole = getUserRole(userId);
+                
+                // Ukryj opcje których użytkownik nie może używać
+                document.getElementById('contextMakeAdmin').style.display = 
+                    (currentUserRole === 'owner' && targetUserRole !== 'owner') ? 'flex' : 'none';
+                document.getElementById('contextKick').style.display = 
+                    (currentUserRole === 'owner' || currentUserRole === 'admin') ? 'flex' : 'none';
+                document.getElementById('contextBan').style.display = 
+                    (currentUserRole === 'owner' || currentUserRole === 'admin') ? 'flex' : 'none';
+                
+                contextMenu.style.left = `${e.pageX}px`;
+                contextMenu.style.top = `${e.pageY}px`;
+                contextMenu.style.display = 'block';
+                contextMenu.dataset.targetUserId = userId;
             }
         });
 
-        // Dodanie ikon dla serwerów
-        document.addEventListener('DOMContentLoaded', () => {
-            // W przypadku braku Firebase, pokaż demo
-            setTimeout(() => {
-                if (!currentUser) {
-                    showNotification('Użyj przycisku Google, aby zalogować się do demo', 'info');
-                }
-            }, 2000);
+        // Context menu actions
+        document.getElementById('contextProfile').addEventListener('click', () => {
+            const userId = contextMenu.dataset.targetUserId;
+            showNotification(`Profil użytkownika: ${userId}`, 'info');
+            contextMenu.style.display = 'none';
         });
 
-        // Informacja o konfiguracji Firebase
-        console.log('Aby używać Firebase, skonfiguruj swój projekt na https://console.firebase.google.com/');
-        console.log('i wklej swoją konfigurację w linijkach 608-615 w kodzie.');
-        console.log('Bez konfiguracji Firebase aplikacja będzie działać w trybie demo (tylko widok).');
+        document.getElementById('contextMessage').addEventListener('click', () => {
+            const userId = contextMenu.dataset.targetUserId;
+            messageInput.value = `@${userId} `;
+            messageInput.focus();
+            contextMenu.style.display = 'none';
+        });
+
+        document.getElementById('contextMakeAdmin').addEventListener('click', () => {
+            const userId = contextMenu.dataset.targetUserId;
+            if (confirm(`Czy na pewno chcesz mianować użytkownika ${userId} adminem?`)) {
+                showNotification(`Użytkownik ${userId} został mianowany adminem`, 'success');
+                contextMenu.style.display = 'none';
+            }
+        });
+
+        document.getElementById('contextKick').addEventListener('click', () => {
+            const userId = contextMenu.dataset.targetUserId;
+            if (confirm(`Czy na pewno chcesz wyrzucić użytkownika ${userId}?`)) {
+                showNotification(`Użytkownik ${userId} został wyrzucony`, 'success');
+                contextMenu.style.display = 'none';
+            }
+        });
+
+        document.getElementById('contextBan').addEventListener('click', () => {
+            const userId = contextMenu.dataset.targetUserId;
+            if (confirm(`Czy na pewno chcesz zbanować użytkownika ${userId}?`)) {
+                showNotification(`Użytkownik ${userId} został zbanowany`, 'success');
+                contextMenu.style.display = 'none';
+            }
+        });
+
+        // Enter do wysyłania w modalach
+        document.getElementById('serverNameInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') createServer();
+        });
+
+        document.getElementById('channelNameInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') createChannel();
+        });
+
+        // Inicjalizacja
+        console.log('Curl - Platforma komunikacyjna');
+        console.log('Admini:', adminData);
     </script>
 </body>
 </html>
